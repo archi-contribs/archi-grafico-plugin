@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="com.archimatetool.editor.exportHandler">
+      <exportHandler
+            class="org.archicontribs.grafico.MyExporter"
+            id="com.archimatetool.import_export_example.exportHandler"
+            label="Model as GRAFICO...">
+      </exportHandler>
+   </extension>
+   <extension
+         point="com.archimatetool.editor.importHandler">
+      <importHandler
+            class="org.archicontribs.grafico.MyImporter"
+            id="com.archimatetool.import_export_example.importHandler"
+            label="Model from GRAFICO...">
+      </importHandler>
+   </extension>
+
+</plugin>

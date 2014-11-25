@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: GRAFICO Import and Export Plugin
+Bundle-SymbolicName: org.archicontribs.grafico;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: Jean-Baptiste Sarrodie
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ com.archimatetool.editor
