@@ -6,9 +6,14 @@
 package org.archicontribs.grafico;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
@@ -61,6 +66,9 @@ public class MyImporter implements IModelImporter {
             return;
         }
     	
+    	File modelFolder = new File(folder, "model");
+    	File imagesFolder = new File(folder, "images");
+    	
     	// Create ResourceSet
     	resourceSet = new ResourceSetImpl();
     	resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("*", new XMLResourceFactoryImpl());
@@ -69,17 +77,51 @@ public class MyImporter implements IModelImporter {
         idLookup = new HashMap<String, IIdentifier>();
     	
         // Load the Model from files (it will contain unresolved proxies)
-    	IArchimateModel model = (IArchimateModel) loadFolder(folder);
+    	IArchimateModel model = (IArchimateModel) loadFolder(modelFolder);
     	// Remove model from its resource (needed to save in back to .archimate)
-    	Resource resource = resourceSet.getResource(URI.createFileURI((new File(folder, "folder.xml")).getAbsolutePath()), true);
+    	Resource resource = resourceSet.getResource(URI.createFileURI((new File(modelFolder, "folder.xml")).getAbsolutePath()), true);
     	resource.getContents().remove(model);
     	
     	// Resolve proxies
     	resolveRelations(model.getFolder(FolderType.RELATIONS));
     	resolveDiagramFolder(model.getFolder(FolderType.DIAGRAMS));
     	
+    	// Load images in a dummy .archimate file and assign it to model
+    	File dummy = createDummyArchimateFile(imagesFolder);
+    	model.setFile(dummy);
     	// Open the Model in the Editor
         IEditorModelManager.INSTANCE.openModel(model);
+        model.setFile(null);
+    }
+    
+    private File createDummyArchimateFile(File folder) throws IOException {
+    	byte[] buffer = new byte[1024];
+    	File tmpFile = File.createTempFile("archi-", null); //$NON-NLS-1$
+    	FileOutputStream fos = new FileOutputStream(tmpFile);
+    	ZipOutputStream zos = new ZipOutputStream(fos);
+    	
+    	// Add all images files
+    	for (File fileOrFolder: folder.listFiles()) {
+    		ZipEntry ze = new ZipEntry("images/"+fileOrFolder.getName());
+    		zos.putNextEntry(ze);
+    		FileInputStream in = new FileInputStream(fileOrFolder);
+ 
+    		int len;
+    		while ((len = in.read(buffer)) > 0) {
+    			zos.write(buffer, 0, len);
+    		}
+ 
+    		in.close();
+    		zos.closeEntry();
+    	}
+    	
+    	// Add a dummy model.xml
+    	ZipEntry ze = new ZipEntry("model.xml");
+		zos.putNextEntry(ze);
+		zos.closeEntry();
+    	
+    	zos.close();
+    	return tmpFile;
     }
     
     private void resolveRelations(IFolder folder) {
