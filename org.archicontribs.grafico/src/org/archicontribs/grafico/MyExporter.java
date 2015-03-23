@@ -190,7 +190,14 @@ public class MyExporter implements IModelExporter {
                 if(!result) {
                     return null;
                 }
-                FileUtils.deleteFolder(folder);
+                File imagesFolder = new File(folder, "images");
+                File modelFolder = new File(folder, "model");
+                if (imagesFolder.exists()) {
+                	FileUtils.deleteFolder(imagesFolder);
+                }
+                if (modelFolder.exists()) {
+                	FileUtils.deleteFolder(modelFolder);
+                }
             }
         }
         folder.mkdirs();
