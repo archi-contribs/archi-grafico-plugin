@@ -14,6 +14,10 @@ public class Messages extends NLS {
     public static String MyExporter_0;
     public static String MyExporter_1;
 
+	public static String MyExporter_3;
+
+	public static String MyExporter_4;
+
     static {
         // initialize resource bundle
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);
