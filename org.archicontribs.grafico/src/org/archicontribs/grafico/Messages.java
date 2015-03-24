@@ -18,6 +18,8 @@ public class Messages extends NLS {
 
 	public static String MyExporter_4;
 
+	public static String MyImporter_0;
+
     static {
         // initialize resource bundle
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);
