@@ -7,10 +7,10 @@ package org.archicontribs.grafico;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -27,14 +27,11 @@ import org.eclipse.swt.widgets.Display;
 
 import com.archimatetool.editor.model.IEditorModelManager;
 import com.archimatetool.editor.model.IModelImporter;
-import com.archimatetool.model.FolderType;
 import com.archimatetool.model.IArchimateElement;
 import com.archimatetool.model.IArchimateModel;
 import com.archimatetool.model.IDiagramModel;
 import com.archimatetool.model.IDiagramModelArchimateConnection;
 import com.archimatetool.model.IDiagramModelArchimateObject;
-import com.archimatetool.model.IDiagramModelConnection;
-import com.archimatetool.model.IDiagramModelContainer;
 import com.archimatetool.model.IDiagramModelReference;
 import com.archimatetool.model.IFolder;
 import com.archimatetool.model.IFolderContainer;
@@ -83,8 +80,7 @@ public class MyImporter implements IModelImporter {
     	resource.getContents().remove(model);
     	
     	// Resolve proxies
-    	resolveRelations(model.getFolder(FolderType.RELATIONS));
-    	resolveDiagramFolder(model.getFolder(FolderType.DIAGRAMS));
+    	resolveProxies(model);
     	
     	// Load images in a dummy .archimate file and assign it to model
     	File dummy = createDummyArchimateFile(imagesFolder);
@@ -124,60 +120,35 @@ public class MyImporter implements IModelImporter {
     	return tmpFile;
     }
     
-    private void resolveRelations(IFolder folder) {
-    	// Loop on elements
-    	for (EObject object: folder.getElements()) {
-    		IRelationship rel = (IRelationship) object;
-    		rel.setSource((IArchimateElement) resolve(rel.getSource()));
-    		rel.setTarget((IArchimateElement) resolve(rel.getTarget())); 
-    	}
-    	// Loop on subfolders
-    	for (IFolder subfolder: folder.getFolders()) {
-    		resolveRelations(subfolder);
-    	}
-    }
-    
-    private void resolveDiagramFolder(IFolder folder) {
-    	// Loop on views
-    	for (EObject object: folder.getElements()) {
-    		resolveDiagram(object);
-    	}
-    	// Loop on subfolders
-    	for (IFolder subfolder: folder.getFolders()) {
-    		resolveDiagramFolder(subfolder);
-    	}
-    }
-    
-	private void resolveDiagram(EObject object) {
-		if (!(object instanceof IDiagramModelContainer)) {
-			return;
-		}
-		for (EObject child: ((IDiagramModelContainer) object).getChildren()) {
-			if (child instanceof IDiagramModelArchimateObject) {
-				// resolve Elements
-				IDiagramModelArchimateObject element = (IDiagramModelArchimateObject) child;
+   
+    private void resolveProxies(EObject object) {
+    	for(Iterator<EObject> iter = object.eAllContents(); iter.hasNext();) {
+            EObject eObject = iter.next();
+            
+            if(eObject instanceof IRelationship) {
+            	// Resolve proxies for Relations
+            	IRelationship relation = (IRelationship) eObject;
+            	relation.setSource((IArchimateElement) resolve(relation.getSource()));
+            	relation.setTarget((IArchimateElement) resolve(relation.getTarget())); 
+            } else if(eObject instanceof IDiagramModelArchimateObject) {
+            	// Resolve proxies for Elements
+            	IDiagramModelArchimateObject element = (IDiagramModelArchimateObject) eObject;
 				element.setArchimateElement((IArchimateElement) resolve(element.getArchimateElement()));
 				// Update cross-references
 				element.getArchimateElement().getReferencingDiagramObjects().add(element);
-				// resolve Connections
-				for (IDiagramModelConnection connection: element.getSourceConnections()) {
-					if (connection instanceof IDiagramModelArchimateConnection) {
-						// resolve Connections
-						IDiagramModelArchimateConnection archiConnection = (IDiagramModelArchimateConnection) connection;
-						archiConnection.setRelationship((IRelationship) resolve(archiConnection.getRelationship()));
-						// Update cross-reference
-						archiConnection.getRelationship().getReferencingDiagramConnections().add(archiConnection);
-					}
-				}
-			} else if (child instanceof IDiagramModelReference) {
-				// resolve Elements
-				IDiagramModelReference element = (IDiagramModelReference) child;
+            } else if(eObject instanceof IDiagramModelArchimateConnection) {
+            	// Resolve proxies for Connections
+            	IDiagramModelArchimateConnection archiConnection = (IDiagramModelArchimateConnection) eObject;
+				archiConnection.setRelationship((IRelationship) resolve(archiConnection.getRelationship()));
+				//	Update cross-reference
+				archiConnection.getRelationship().getReferencingDiagramConnections().add(archiConnection);
+            } else if (eObject instanceof IDiagramModelReference) {
+            	// Resolve proxies for Model References
+            	IDiagramModelReference element = (IDiagramModelReference) eObject;
 				element.setReferencedModel((IDiagramModel) resolve(element.getReferencedModel()));
-			}
-			// Loop on Containers
-			resolveDiagram(child);
-		}
-	}
+            }
+        }
+    }
 
 	private EObject resolve(IIdentifier object) {
 		if (object.eIsProxy()) {
