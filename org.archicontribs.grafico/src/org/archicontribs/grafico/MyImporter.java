@@ -18,7 +18,6 @@ import java.util.zip.ZipOutputStream;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.InternalEObject;
-import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.XMLResource;
@@ -35,7 +34,6 @@ import com.archimatetool.model.IDiagramModelArchimateConnection;
 import com.archimatetool.model.IDiagramModelArchimateObject;
 import com.archimatetool.model.IDiagramModelReference;
 import com.archimatetool.model.IFolder;
-import com.archimatetool.model.IFolderContainer;
 import com.archimatetool.model.IIdentifier;
 import com.archimatetool.model.IRelationship;
 
@@ -77,7 +75,7 @@ public class MyImporter implements IModelImporter {
     	resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("*", new XMLResourceFactoryImpl()); //$NON-NLS-1$
     	
         // Load the Model from files (it will contain unresolved proxies)
-    	IArchimateModel model = (IArchimateModel) loadFolder(modelFolder);
+    	IArchimateModel model = (IArchimateModel) loadModel(modelFolder);
     	
     	// Resolve proxies
     	resolveProxies(model);
@@ -178,25 +176,55 @@ public class MyImporter implements IModelImporter {
 		}
 	}
     
+	private IArchimateModel loadModel(File folder) {
+		IArchimateModel model = (IArchimateModel) loadElement(new File(folder, "folder.xml")); //$NON-NLS-1$
+		IFolder tmpFolder;
+		
+		if (model != null) {
+			if ((tmpFolder = loadFolder(new File(folder, "business"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "application"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "technology"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "motivation"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "implementation_migration"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "connectors"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "relations"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "derived"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+			if ((tmpFolder = loadFolder(new File(folder, "diagrams"))) != null)  //$NON-NLS-1$
+				model.getFolders().add(tmpFolder);
+		}
+		
+		return model;
+	}
+	
 	/**
 	 * Load each XML file to recreate original object
 	 * 
 	 * @param folder
 	 * @return
 	 */
-    private IFolderContainer loadFolder(File folder) {
+    private IFolder loadFolder(File folder) {
+    	if (!folder.isDirectory() | !(new File(folder, "folder.xml")).isFile()) { //$NON-NLS-1$
+    		return null;
+    	}
+    	
     	// Load folder object itself
-    	IFolderContainer currentFolder = (IFolderContainer) loadElement(new File(folder, "folder.xml")); //$NON-NLS-1$
+    	IFolder currentFolder = (IFolder) loadElement(new File(folder, "folder.xml")); //$NON-NLS-1$
     	
     	// Load each elements (except folder.xml) and add them to folder
     	for (File fileOrFolder: folder.listFiles()) {
-    		if(!fileOrFolder.getName().equals("folder.xml")) { //$NON-NLS-1$
-    			if (fileOrFolder.isFile() & currentFolder instanceof IFolder) {
-    				((IFolder) currentFolder).getElements().add(loadElement(fileOrFolder));
-    			} else {
-    				currentFolder.getFolders().add((IFolder) loadFolder(fileOrFolder));
-    			}
-    		}
+			if (fileOrFolder.isFile() & !fileOrFolder.getName().equals("folder.xml")) { //$NON-NLS-1$
+				currentFolder.getElements().add(loadElement(fileOrFolder));
+			} else {
+				currentFolder.getFolders().add(loadFolder(fileOrFolder));
+			}
     	}
     	
     	return currentFolder;
@@ -226,7 +254,7 @@ public class MyImporter implements IModelImporter {
     private File askOpenFolder() {
         DirectoryDialog dialog = new DirectoryDialog(Display.getCurrent().getActiveShell());
         dialog.setText(Messages.MyExporter_0);
-        dialog.setMessage("Choose a folder from which to import the model.");
+        dialog.setMessage(Messages.MyImporter_0);
         String path = dialog.open();
         return (path == null)? null : new File(path);
     }
