@@ -99,7 +99,7 @@ public class MyExporter implements IModelExporter {
     private void createResourceForFolder(IFolderContainer folderContainer, File folder) throws IOException {
 		// Save each children folders
     	List<IFolder> allFolders = new ArrayList<IFolder>();
-    	allFolders.addAll(((IFolderContainer)folderContainer).getFolders());
+    	allFolders.addAll(folderContainer.getFolders());
 		for (IFolder tmpFolder: allFolders) {
 			File tmpFolderFile = new File(folder, getNameFor(tmpFolder));
 			tmpFolderFile.mkdirs();
@@ -168,6 +168,7 @@ public class MyExporter implements IModelExporter {
     	
     	// Step 3 & 4
     	if (useArchiveFormat) {
+    		byte[] buffer = new byte[1024];
 	    	ZipFile zipFile = new ZipFile(tmpFile);
 	    	for(Enumeration<? extends ZipEntry> enm = zipFile.entries(); enm.hasMoreElements();) {
 	            ZipEntry zipEntry = enm.nextElement();
@@ -178,10 +179,9 @@ public class MyExporter implements IModelExporter {
 	                new File(newFile.getParent()).mkdirs();
 	                InputStream is = zipFile.getInputStream(zipEntry);
 					FileOutputStream fos = new FileOutputStream(newFile);
-					byte[] bytes = new byte[1024];
 					int length;
-					while ((length = is.read(bytes)) >= 0) {
-						fos.write(bytes, 0, length);
+					while ((length = is.read(buffer)) >= 0) {
+						fos.write(buffer, 0, length);
 					}
 					is.close();
 					fos.close();
@@ -218,9 +218,10 @@ public class MyExporter implements IModelExporter {
                     return null;
                 }
             }
+        } else {
+        	folder.mkdirs();
         }
         
-        folder.mkdirs();
         return folder;
     }
 }
