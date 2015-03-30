@@ -20,3 +20,6 @@ So basically:
  * You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests we endorse you or your use.
  * You can't use this plugin for commercial purposes.
  * If you remix, transform, or build upon this plugin, you can't distribute the modified material.
+
+#### Use-cases
+This plugin can be used for several purposes (merging models, keeping changelog/history of model edits, multi-user repository...). Have a look on [the dedicated wiki page](https://github.com/archi-contribs/archi-grafico-plugin/wiki/Use-Cases).
