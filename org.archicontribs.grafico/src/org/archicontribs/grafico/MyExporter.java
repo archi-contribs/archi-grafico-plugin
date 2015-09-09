@@ -141,6 +141,10 @@ public class MyExporter implements IModelExporter {
     	// Create a new resource for selected file and add object to persist
         XMLResource resource = (XMLResource) resourceSet.createResource(URI.createFileURI(file.getAbsolutePath()));
         resource.getDefaultSaveOptions().put(XMLResource.OPTION_ENCODING, "UTF-8"); //$NON-NLS-1$
+        resource.getDefaultSaveOptions().put(XMLResource.OPTION_LINE_WIDTH, new Integer(5));
+        resource.getDefaultSaveOptions().put(XMLResource.OPTION_USE_ENCODED_ATTRIBUTE_STYLE,Boolean.TRUE);
+        resource.getDefaultSaveOptions().put(XMLResource.OPTION_DECLARE_XML,Boolean.FALSE);
+        resource.getDefaultSaveOptions().put(XMLResource.OPTION_CONFIGURATION_CACHE,Boolean.TRUE);
         resource.getContents().add(object);
     }
     
