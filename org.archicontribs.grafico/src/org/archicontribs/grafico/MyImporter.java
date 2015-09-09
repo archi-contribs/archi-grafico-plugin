@@ -76,6 +76,8 @@ public class MyImporter implements IModelImporter {
     	
         // Load the Model from files (it will contain unresolved proxies)
     	IArchimateModel model = (IArchimateModel) loadModel(modelFolder);
+    	// Remove model from its resource (needed to save it back to a .archimate file)
+    	resourceSet.getResource(URI.createFileURI((new File(modelFolder, "folder.xml")).getAbsolutePath()), true).getContents().remove(model);
     	
     	// Resolve proxies
     	resolveProxies(model);
