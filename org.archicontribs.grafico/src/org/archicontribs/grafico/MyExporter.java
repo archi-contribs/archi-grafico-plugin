@@ -32,6 +32,7 @@ import com.archimatetool.editor.model.IArchiveManager;
 import com.archimatetool.editor.model.IEditorModelManager;
 import com.archimatetool.editor.model.IModelExporter;
 import com.archimatetool.editor.utils.FileUtils;
+import com.archimatetool.model.FolderType;
 import com.archimatetool.model.IArchimateModel;
 import com.archimatetool.model.IFolder;
 import com.archimatetool.model.IIdentifier;
@@ -112,7 +113,7 @@ public class MyExporter implements IModelExporter {
 			List<EObject> allElements = new ArrayList<EObject>();
 			allElements.addAll(((IFolder) folderContainer).getElements());
     		for (EObject tmpElement: allElements) {
-    			createResource(new File(folder, ((IIdentifier)tmpElement).getId()+".xml"), tmpElement); //$NON-NLS-1$
+    			createResource(new File(folder, tmpElement.getClass().getSimpleName()+"_"+((IIdentifier)tmpElement).getId()+".xml"), tmpElement); //$NON-NLS-1$
     		}
 		}
 		if (folderContainer instanceof IArchimateModel) {
@@ -127,7 +128,7 @@ public class MyExporter implements IModelExporter {
      * @return
      */
     private String getNameFor(IFolder folder) {
-    	return folder.getType().toString().equals("user") ? folder.getId().toString() : folder.getType().toString(); //$NON-NLS-1$
+    	return folder.getType() == FolderType.USER ? folder.getId().toString() : folder.getType().toString(); //$NON-NLS-1$
     }
     
     /**

@@ -9,8 +9,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -27,6 +29,8 @@ import org.eclipse.swt.widgets.Display;
 
 import com.archimatetool.editor.model.IEditorModelManager;
 import com.archimatetool.editor.model.IModelImporter;
+import com.archimatetool.model.FolderType;
+import com.archimatetool.model.IArchimateConcept;
 import com.archimatetool.model.IArchimateElement;
 import com.archimatetool.model.IArchimateModel;
 import com.archimatetool.model.IDiagramModel;
@@ -35,7 +39,7 @@ import com.archimatetool.model.IDiagramModelArchimateObject;
 import com.archimatetool.model.IDiagramModelReference;
 import com.archimatetool.model.IFolder;
 import com.archimatetool.model.IIdentifier;
-import com.archimatetool.model.IRelationship;
+import com.archimatetool.model.IArchimateRelationship;
 
 
 
@@ -138,11 +142,11 @@ public class MyImporter implements IModelImporter {
     	for(Iterator<EObject> iter = object.eAllContents(); iter.hasNext();) {
             EObject eObject = iter.next();
             
-            if(eObject instanceof IRelationship) {
+            if(eObject instanceof IArchimateRelationship) {
             	// Resolve proxies for Relations
-            	IRelationship relation = (IRelationship) eObject;
-            	relation.setSource((IArchimateElement) resolve(relation.getSource()));
-            	relation.setTarget((IArchimateElement) resolve(relation.getTarget())); 
+            	IArchimateRelationship relation = (IArchimateRelationship) eObject;
+            	relation.setSource((IArchimateConcept) resolve(relation.getSource()));
+            	relation.setTarget((IArchimateConcept) resolve(relation.getTarget())); 
             } else if(eObject instanceof IDiagramModelArchimateObject) {
             	// Resolve proxies for Elements
             	IDiagramModelArchimateObject element = (IDiagramModelArchimateObject) eObject;
@@ -152,9 +156,9 @@ public class MyImporter implements IModelImporter {
             } else if(eObject instanceof IDiagramModelArchimateConnection) {
             	// Resolve proxies for Connections
             	IDiagramModelArchimateConnection archiConnection = (IDiagramModelArchimateConnection) eObject;
-				archiConnection.setRelationship((IRelationship) resolve(archiConnection.getRelationship()));
+				archiConnection.setArchimateRelationship((IArchimateRelationship) resolve(archiConnection.getArchimateRelationship()));
 				//	Update cross-reference
-				archiConnection.getRelationship().getReferencingDiagramConnections().add(archiConnection);
+				archiConnection.getArchimateRelationship().getReferencingDiagramConnections().add(archiConnection);
             } else if (eObject instanceof IDiagramModelReference) {
             	// Resolve proxies for Model References
             	IDiagramModelReference element = (IDiagramModelReference) eObject;
@@ -183,24 +187,22 @@ public class MyImporter implements IModelImporter {
 		IFolder tmpFolder;
 		
 		if (model != null) {
-			if ((tmpFolder = loadFolder(new File(folder, "business"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "application"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "technology"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "motivation"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "implementation_migration"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "connectors"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "relations"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "derived"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
-			if ((tmpFolder = loadFolder(new File(folder, "diagrams"))) != null)  //$NON-NLS-1$
-				model.getFolders().add(tmpFolder);
+			List<FolderType> folderList = new ArrayList<FolderType>();
+			folderList.add(FolderType.STRATEGY);
+			folderList.add(FolderType.BUSINESS);
+			folderList.add(FolderType.APPLICATION);
+			folderList.add(FolderType.TECHNOLOGY);
+			folderList.add(FolderType.MOTIVATION);
+			folderList.add(FolderType.IMPLEMENTATION_MIGRATION);
+			folderList.add(FolderType.OTHER);
+			folderList.add(FolderType.RELATIONS);
+			folderList.add(FolderType.DIAGRAMS);
+			
+			// Loop based on FolderType enumeration
+			for (int i = 0; i < folderList.size(); i++) {
+				if ((tmpFolder = loadFolder(new File(folder, folderList.get(i).toString()))) != null)  //$NON-NLS-1$
+					model.getFolders().add(tmpFolder);
+			}
 		}
 		
 		return model;
