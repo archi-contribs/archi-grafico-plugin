@@ -20,6 +20,14 @@ public class Messages extends NLS {
 
 	public static String MyImporter_0;
 
+	public static String MyImporter_1;
+
+	public static String MyImporter_2;
+
+	public static String MyImporter_3;
+
+	public static String MyImporter_4;
+
     static {
         // initialize resource bundle
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);

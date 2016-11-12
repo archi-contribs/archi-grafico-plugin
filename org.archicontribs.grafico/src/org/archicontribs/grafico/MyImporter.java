@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.MultiStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.InternalEObject;
@@ -55,6 +58,7 @@ import com.archimatetool.model.IArchimateRelationship;
 public class MyImporter implements IModelImporter {
 	// ID -> Object lookup table
     Map<String, IIdentifier> idLookup  = new HashMap<String, IIdentifier>();
+    MultiStatus resolveErrors;
     
 	ResourceSet resourceSet;
 	
@@ -81,9 +85,10 @@ public class MyImporter implements IModelImporter {
         // Load the Model from files (it will contain unresolved proxies)
     	IArchimateModel model = (IArchimateModel) loadModel(modelFolder);
     	// Remove model from its resource (needed to save it back to a .archimate file)
-    	resourceSet.getResource(URI.createFileURI((new File(modelFolder, "folder.xml")).getAbsolutePath()), true).getContents().remove(model);
+    	resourceSet.getResource(URI.createFileURI((new File(modelFolder, "folder.xml")).getAbsolutePath()), true).getContents().remove(model); //$NON-NLS-1$
     	
     	// Resolve proxies
+    	resolveErrors = null;
     	resolveProxies(model);
     	
     	// Load images in a dummy .archimate file and assign it to model
@@ -92,6 +97,14 @@ public class MyImporter implements IModelImporter {
         IEditorModelManager.INSTANCE.openModel(model);
         // Clean up file reference
         model.setFile(null);
+        
+        // Show warnings and errors (if any)
+        if (resolveErrors != null)
+	        org.eclipse.jface.dialogs.ErrorDialog.openError( 	
+	        		Display.getCurrent().getActiveShell(), 	
+	        		Messages.MyImporter_1,
+	        		Messages.MyImporter_2,
+	        		resolveErrors);
     }
     
     /**
@@ -145,24 +158,24 @@ public class MyImporter implements IModelImporter {
             if(eObject instanceof IArchimateRelationship) {
             	// Resolve proxies for Relations
             	IArchimateRelationship relation = (IArchimateRelationship) eObject;
-            	relation.setSource((IArchimateConcept) resolve(relation.getSource()));
-            	relation.setTarget((IArchimateConcept) resolve(relation.getTarget())); 
+            	relation.setSource((IArchimateConcept) resolve(relation.getSource(), relation));
+            	relation.setTarget((IArchimateConcept) resolve(relation.getTarget(), relation)); 
             } else if(eObject instanceof IDiagramModelArchimateObject) {
             	// Resolve proxies for Elements
             	IDiagramModelArchimateObject element = (IDiagramModelArchimateObject) eObject;
-				element.setArchimateElement((IArchimateElement) resolve(element.getArchimateElement()));
+				element.setArchimateElement((IArchimateElement) resolve(element.getArchimateElement(), element));
 				// Update cross-references
 				element.getArchimateElement().getReferencingDiagramObjects().add(element);
             } else if(eObject instanceof IDiagramModelArchimateConnection) {
             	// Resolve proxies for Connections
             	IDiagramModelArchimateConnection archiConnection = (IDiagramModelArchimateConnection) eObject;
-				archiConnection.setArchimateRelationship((IArchimateRelationship) resolve(archiConnection.getArchimateRelationship()));
+				archiConnection.setArchimateRelationship((IArchimateRelationship) resolve(archiConnection.getArchimateRelationship(), archiConnection));
 				//	Update cross-reference
 				archiConnection.getArchimateRelationship().getReferencingDiagramConnections().add(archiConnection);
             } else if (eObject instanceof IDiagramModelReference) {
             	// Resolve proxies for Model References
             	IDiagramModelReference element = (IDiagramModelReference) eObject;
-				element.setReferencedModel((IDiagramModel) resolve(element.getReferencedModel()));
+				element.setReferencedModel((IDiagramModel) resolve(element.getReferencedModel(), element));
             }
         }
     }
@@ -173,9 +186,19 @@ public class MyImporter implements IModelImporter {
      * @param object
      * @return
      */
-	private EObject resolve(IIdentifier object) {
+	private EObject resolve(IIdentifier object, IIdentifier parent) {
 		if (object != null & object.eIsProxy()) {
 			IIdentifier newObject = idLookup.get(((InternalEObject) object).eProxyURI().fragment());
+			// Log errors if proxy has not been resolved
+			if (newObject == null) {
+				String message = String.format(Messages.MyImporter_3, ((InternalEObject) object).eProxyURI().fragment(), parent.getClass().getSimpleName(), parent.getId());
+				System.out.println(message);
+				// Create resolveError the first time	
+				if (resolveErrors == null)
+					resolveErrors = new MultiStatus("org.archicontribs.grafico", IStatus.ERROR, Messages.MyImporter_4, null); //$NON-NLS-1$
+				// Add an error to the list
+				resolveErrors.add(new Status(IStatus.ERROR, "org.archicontribs.grafico", message)); //$NON-NLS-1$
+			}
 			return newObject == null ? object : newObject;
 		} else {
 			return object;
