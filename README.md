@@ -7,7 +7,7 @@ GRAFICO is a way to persist an ArchiMate model in a bunch of XML files (one file
 #### How to use it?
 Important remark: this plugin is still young, so be prepared to find some bugs. You should also be aware that generated XML will certainly change a little soon to be even easier to update manually in case of conflict.
 
-Still reading and not afraid? So just [download the plugin](http://github.com/archi-contribs/archi-grafico-plugin/releases/download/release_0.1/org.archicontribs.grafico_0.1.0.jar) and put it in the 'plugin/' subdirectory of Archi. You should now see two new menu entries "File > Export > Model as GRAFICO..." and "File > Import > Model from GRAFICO...". By itself, the plugin doesn't do any versioning, it's up to you to choose the best tool for you needs (but I highly recommend git).
+Still reading and not afraid? So just [download the plugin](https://github.com/archi-contribs/archi-grafico-plugin/releases/download/release_0.4beta/org.archicontribs.grafico_0.4.0.jar) and put it in the 'plugin/' subdirectory of Archi. You should now see two new menu entries "File > Export > Model as GRAFICO..." and "File > Import > Model from GRAFICO...". By itself, the plugin doesn't do any versioning, it's up to you to choose the best tool for you needs (but I highly recommend git).
 
 #### Credit
 The root idea came from [some discussions](https://groups.google.com/forum/?hl=en#!searchin/archi-dev/git/archi-dev/8sCoD6Ctj-c/MnqM_luHJRAJ) with Árpád Magosányi and Michael Tapp on the old Archi forum.
