@@ -6,15 +6,13 @@
 package org.archicontribs.grafico;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -29,11 +27,11 @@ import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Display;
 
 import com.archimatetool.editor.model.IArchiveManager;
-import com.archimatetool.editor.model.IEditorModelManager;
 import com.archimatetool.editor.model.IModelExporter;
 import com.archimatetool.editor.utils.FileUtils;
 import com.archimatetool.model.FolderType;
 import com.archimatetool.model.IArchimateModel;
+import com.archimatetool.model.IDiagramModelImageProvider;
 import com.archimatetool.model.IFolder;
 import com.archimatetool.model.IIdentifier;
 import com.archimatetool.model.IFolderContainer;
@@ -67,12 +65,13 @@ public class MyExporter implements IModelExporter {
     	File modelFolder = new File(folder, "model"); //$NON-NLS-1$
     	FileUtils.deleteFolder(modelFolder);
     	modelFolder.mkdirs();
+    	// WARNING: imagesFolder must match the prefix used in ArchiveManager.createArchiveImagePathname
     	File imagesFolder = new File(folder, "images"); //$NON-NLS-1$
     	FileUtils.deleteFolder(imagesFolder);
     	imagesFolder.mkdirs();
     	
     	// Save model images (if any): this has to be done on original model (not a copy)
-    	saveImages(model, imagesFolder);
+    	saveImages(model, imagesFolder.getParentFile());
     	
     	// Create ResourceSet
     	resourceSet = new ResourceSetImpl();
@@ -151,51 +150,28 @@ public class MyExporter implements IModelExporter {
     
     /**
      * Extract and save images used inside a model
-     * This is a kind of hack and involves the following steps:
-     * 1. save model in a temporary .archimate file
-     * 2. check if this .archimate file is a ZIP (thus contains images) or an XML file
-     * 3. if XML file, then return
-     * 4. if ZIP, extract images to target folder
      * 
      * @param fModel
      * @param folder
      * @throws IOException
      */
     private void saveImages(IArchimateModel fModel, File folder) throws IOException {
-    	// Step 1
-    	File old = fModel.getFile();
-    	File tmpFile = File.createTempFile("archi-", null); //$NON-NLS-1$
-    	fModel.setFile(tmpFile);
-    	IEditorModelManager.INSTANCE.saveModel(fModel);
-    	
-    	// Step 2
-    	boolean useArchiveFormat = IArchiveManager.FACTORY.isArchiveFile(tmpFile);
-    	
-    	// Step 3 & 4
-    	if (useArchiveFormat) {
-    		byte[] buffer = new byte[1024];
-	    	ZipFile zipFile = new ZipFile(tmpFile);
-	    	for(Enumeration<? extends ZipEntry> enm = zipFile.entries(); enm.hasMoreElements();) {
-	            ZipEntry zipEntry = enm.nextElement();
-	            String entryName = zipEntry.getName();
-	            if(entryName.startsWith("images/")) { //$NON-NLS-1$
-	            	File newFile = new File(folder + File.separator + entryName.replace("images/", "")); //$NON-NLS-1$ //$NON-NLS-2$
-	            	//create all non exists folders
-	                new File(newFile.getParent()).mkdirs();
-	                InputStream is = zipFile.getInputStream(zipEntry);
-					FileOutputStream fos = new FileOutputStream(newFile);
-					int length;
-					while ((length = is.read(buffer)) >= 0) {
-						fos.write(buffer, 0, length);
-					}
-					is.close();
-					fos.close();
-	            }
-	        }
-	        zipFile.close();
-    	}
-    	
-    	fModel.setFile(old);
+        List<String> added = new ArrayList<String>();
+        IArchiveManager archiveManager = IArchiveManager.FACTORY.createArchiveManager(fModel);
+        byte[] bytes;
+        
+        for(Iterator<EObject> iter = fModel.eAllContents(); iter.hasNext();) {
+            EObject eObject = iter.next();
+            if(eObject instanceof IDiagramModelImageProvider) {
+                IDiagramModelImageProvider imageProvider = (IDiagramModelImageProvider)eObject;
+                String imagePath = imageProvider.getImagePath();
+                if(imagePath != null && !added.contains(imagePath)) {
+                	bytes = archiveManager.getBytesFromEntry(imagePath);
+	                Files.write(Paths.get(folder.getAbsolutePath()+File.separator+imagePath), bytes, StandardOpenOption.CREATE);
+	                added.add(imagePath);
+                }
+            }
+        }
     }
     
     /**
