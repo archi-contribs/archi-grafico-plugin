@@ -6,16 +6,13 @@
 package org.archicontribs.grafico;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
@@ -30,19 +27,20 @@ import org.eclipse.emf.ecore.xmi.impl.XMLResourceFactoryImpl;
 import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Display;
 
+import com.archimatetool.editor.model.IArchiveManager;
 import com.archimatetool.editor.model.IEditorModelManager;
 import com.archimatetool.editor.model.IModelImporter;
 import com.archimatetool.model.FolderType;
 import com.archimatetool.model.IArchimateConcept;
 import com.archimatetool.model.IArchimateElement;
 import com.archimatetool.model.IArchimateModel;
+import com.archimatetool.model.IArchimateRelationship;
 import com.archimatetool.model.IDiagramModel;
 import com.archimatetool.model.IDiagramModelArchimateConnection;
 import com.archimatetool.model.IDiagramModelArchimateObject;
 import com.archimatetool.model.IDiagramModelReference;
 import com.archimatetool.model.IFolder;
 import com.archimatetool.model.IIdentifier;
-import com.archimatetool.model.IArchimateRelationship;
 
 
 
@@ -74,7 +72,7 @@ public class MyImporter implements IModelImporter {
     	File modelFolder = new File(folder, "model"); //$NON-NLS-1$
     	File imagesFolder = new File(folder, "images"); //$NON-NLS-1$
     	
-    	if (!modelFolder.isDirectory() | !imagesFolder.isDirectory()) {
+    	if (!modelFolder.isDirectory()) {
     		return;
     	}
     	
@@ -91,12 +89,12 @@ public class MyImporter implements IModelImporter {
     	resolveErrors = null;
     	resolveProxies(model);
     	
-    	// Load images in a dummy .archimate file and assign it to model
-    	model.setFile(createDummyArchimateFile(imagesFolder));
+    	if(imagesFolder.isDirectory()) {
+    		loadImages(model, imagesFolder);
+    	}
+    	
     	// Open the Model in the Editor
         IEditorModelManager.INSTANCE.openModel(model);
-        // Clean up file reference
-        model.setFile(null);
         
         // Show warnings and errors (if any)
         if (resolveErrors != null)
@@ -107,42 +105,25 @@ public class MyImporter implements IModelImporter {
 	        		resolveErrors);
     }
     
+    
     /**
-     * Create a dummy .archimate file with empty model and all images
-     * located inside folder passed as argument.
+     * Read images from images subfolder and load them into the model
      * 
+     * @param fModel
      * @param folder
-     * @return
      * @throws IOException
      */
-    private File createDummyArchimateFile(File folder) throws IOException {
-    	byte[] buffer = new byte[1024];
-    	File tmpFile = File.createTempFile("archi-", null); //$NON-NLS-1$
-    	FileOutputStream fos = new FileOutputStream(tmpFile);
-    	ZipOutputStream zos = new ZipOutputStream(fos);
+    private void loadImages(IArchimateModel fModel, File folder) throws IOException {
+    	IArchiveManager archiveManager = IArchiveManager.FACTORY.createArchiveManager(fModel);
+    	byte[] bytes;
     	
     	// Add all images files
-    	for (File fileOrFolder: folder.listFiles()) {
-    		ZipEntry ze = new ZipEntry("images/"+fileOrFolder.getName()); //$NON-NLS-1$
-    		zos.putNextEntry(ze);
-    		FileInputStream in = new FileInputStream(fileOrFolder);
- 
-    		int len;
-    		while ((len = in.read(buffer)) > 0) {
-    			zos.write(buffer, 0, len);
+    	for (File imageFile: folder.listFiles()) {
+    		if (imageFile.isFile()) {
+    		      bytes = Files.readAllBytes(imageFile.toPath());
+    		      archiveManager.addByteContentEntry(folder.getName()+File.separator+imageFile.getName(), bytes);
     		}
- 
-    		in.close();
-    		zos.closeEntry();
     	}
-    	
-    	// Add a dummy model.xml
-    	ZipEntry ze = new ZipEntry("model.xml"); //$NON-NLS-1$
-		zos.putNextEntry(ze);
-		zos.closeEntry();
-    	
-    	zos.close();
-    	return tmpFile;
     }
     
    
