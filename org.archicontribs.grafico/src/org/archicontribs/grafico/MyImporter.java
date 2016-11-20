@@ -55,7 +55,7 @@ import com.archimatetool.model.IIdentifier;
  */
 public class MyImporter implements IModelImporter {
 	// ID -> Object lookup table
-    Map<String, IIdentifier> idLookup  = new HashMap<String, IIdentifier>();
+    Map<String, IIdentifier> idLookup;
     MultiStatus resolveErrors;
     
 	ResourceSet resourceSet;
@@ -80,6 +80,8 @@ public class MyImporter implements IModelImporter {
     	resourceSet = new ResourceSetImpl();
     	resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("*", new XMLResourceFactoryImpl()); //$NON-NLS-1$
     	
+    	// Reset the ID -> Object lookup table
+    	idLookup = new HashMap<String, IIdentifier>();
         // Load the Model from files (it will contain unresolved proxies)
     	IArchimateModel model = (IArchimateModel) loadModel(modelFolder);
     	// Remove model from its resource (needed to save it back to a .archimate file)
