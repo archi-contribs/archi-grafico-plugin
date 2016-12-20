@@ -17,6 +17,7 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.emf.ecore.resource.impl.ExtensibleURIConverterImpl;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.xmi.XMLResource;
@@ -47,7 +48,17 @@ import com.archimatetool.model.IFolderContainer;
  * @author Phillip Beauvoir
  */
 public class MyExporter implements IModelExporter {
+	
+	// This resourceSet will be recreated for each model export
 	ResourceSet resourceSet;
+	
+	// Filename to use for serialization of folder elements
+	static final String FOLDER_XML = "folder.xml";
+	
+	// Name of folders for model and images
+	// /!\ IMAGES_FOLDER must match the prefix used in ArchiveManager.createArchiveImagePathname
+	static final String IMAGES_FOLDER = "images";
+	static final String MODEL_FOLDER = "model";
     
     public MyExporter() {
     }
@@ -62,11 +73,10 @@ public class MyExporter implements IModelExporter {
     	
     	// Define target folders for model and images
     	// Delete them and re-create them (remark: FileUtils.deleteFolder() does sanity checks)
-    	File modelFolder = new File(folder, "model"); //$NON-NLS-1$
+    	File modelFolder = new File(folder, MODEL_FOLDER);
     	FileUtils.deleteFolder(modelFolder);
     	modelFolder.mkdirs();
-    	// WARNING: imagesFolder must match the prefix used in ArchiveManager.createArchiveImagePathname
-    	File imagesFolder = new File(folder, "images"); //$NON-NLS-1$
+    	File imagesFolder = new File(folder, IMAGES_FOLDER);
     	FileUtils.deleteFolder(imagesFolder);
     	imagesFolder.mkdirs();
     	
@@ -76,13 +86,15 @@ public class MyExporter implements IModelExporter {
     	// Create ResourceSet
     	resourceSet = new ResourceSetImpl();
     	resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("*", new XMLResourceFactoryImpl()); //$NON-NLS-1$
+    	// Add a URIConverter that will be used to map full filenames to logical names
+    	resourceSet.setURIConverter(new ExtensibleURIConverterImpl());
     	
     	// Now work on a copy
-    	// save(IArchimateModel, File) create directory structure and prepare all Resources
     	IArchimateModel copy = EcoreUtil.copy(model);
-    	createResourceForFolder(copy, modelFolder);
+    	// Create directory structure and prepare all Resources
+    	createAndSaveResourceForFolder(copy, modelFolder);
     	
-    	// Now save all Resources (done only now to generate relative URI)
+    	// Now save all Resources
     	for (Resource resource: resourceSet.getResources()) {
             resource.save(null);
     	}
@@ -96,15 +108,15 @@ public class MyExporter implements IModelExporter {
      * @param folder Directory in which to generate files
      * @throws IOException
      */
-    private void createResourceForFolder(IFolderContainer folderContainer, File folder) throws IOException {
+    private void createAndSaveResourceForFolder(IFolderContainer folderContainer, File folder) throws IOException {
 		// Save each children folders
     	List<IFolder> allFolders = new ArrayList<IFolder>();
     	allFolders.addAll(folderContainer.getFolders());
 		for (IFolder tmpFolder: allFolders) {
 			File tmpFolderFile = new File(folder, getNameFor(tmpFolder));
 			tmpFolderFile.mkdirs();
-			createResource(new File(tmpFolderFile, "folder.xml"), tmpFolder); //$NON-NLS-1$
-			createResourceForFolder(tmpFolder, tmpFolderFile);
+			createAndSaveResource(new File(tmpFolderFile, FOLDER_XML), tmpFolder);
+			createAndSaveResourceForFolder(tmpFolder, tmpFolderFile);
 		}		
 		// Save each children elements
 		if (folderContainer instanceof IFolder) {
@@ -112,11 +124,11 @@ public class MyExporter implements IModelExporter {
 			List<EObject> allElements = new ArrayList<EObject>();
 			allElements.addAll(((IFolder) folderContainer).getElements());
     		for (EObject tmpElement: allElements) {
-    			createResource(new File(folder, tmpElement.getClass().getSimpleName()+"_"+((IIdentifier)tmpElement).getId()+".xml"), tmpElement); //$NON-NLS-1$
+    			createAndSaveResource(new File(folder, tmpElement.getClass().getSimpleName()+"_"+((IIdentifier)tmpElement).getId()+".xml"), tmpElement); //$NON-NLS-1$
     		}
 		}
 		if (folderContainer instanceof IArchimateModel) {
-			createResource(new File(folder, "folder.xml"), folderContainer); //$NON-NLS-1$
+			createAndSaveResource(new File(folder, FOLDER_XML), folderContainer);
 		}
     }
     
@@ -137,14 +149,26 @@ public class MyExporter implements IModelExporter {
      * @param object
      * @throws IOException
      */
-    private void createResource(File file, EObject object) throws IOException {
+    private void createAndSaveResource(File file, EObject object) throws IOException {
+    	// Update the URIConverter
+        // Map the logical name (filename) to the physical name (path+filename)
+    	URI key = file.getName().equals(FOLDER_XML) ? URI.createFileURI(file.getAbsolutePath()) : URI.createFileURI(file.getName());
+    	URI value = URI.createFileURI(file.getAbsolutePath());
+        resourceSet.getURIConverter().getURIMap().put(key, value);
+
     	// Create a new resource for selected file and add object to persist
-        XMLResource resource = (XMLResource) resourceSet.createResource(URI.createFileURI(file.getAbsolutePath()));
+        XMLResource resource = (XMLResource) resourceSet.createResource(key);
+        // Use UTF-8 and don't start with an XML declaration
         resource.getDefaultSaveOptions().put(XMLResource.OPTION_ENCODING, "UTF-8"); //$NON-NLS-1$
-        resource.getDefaultSaveOptions().put(XMLResource.OPTION_LINE_WIDTH, new Integer(5));
-        resource.getDefaultSaveOptions().put(XMLResource.OPTION_USE_ENCODED_ATTRIBUTE_STYLE,Boolean.TRUE);
         resource.getDefaultSaveOptions().put(XMLResource.OPTION_DECLARE_XML,Boolean.FALSE);
+        // Make the produced XML easy to read
+        resource.getDefaultSaveOptions().put(XMLResource.OPTION_FORMATTED, Boolean.TRUE);
+        resource.getDefaultSaveOptions().put(XMLResource.OPTION_LINE_WIDTH, new Integer(5));
+        // Don't use encoded attribute. Needed to have proper references inside Diagrams
+        resource.getDefaultSaveOptions().put(XMLResource.OPTION_USE_ENCODED_ATTRIBUTE_STYLE,Boolean.FALSE);
+        // Use cache
         resource.getDefaultSaveOptions().put(XMLResource.OPTION_CONFIGURATION_CACHE,Boolean.TRUE);
+        // Add the object to the resource
         resource.getContents().add(object);
     }
     

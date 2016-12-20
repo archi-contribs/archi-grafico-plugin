@@ -69,8 +69,8 @@ public class MyImporter implements IModelImporter {
         }
     	
     	// Define source folders for model and images
-    	File modelFolder = new File(folder, "model"); //$NON-NLS-1$
-    	File imagesFolder = new File(folder, "images"); //$NON-NLS-1$
+    	File modelFolder = new File(folder, MyExporter.MODEL_FOLDER);
+    	File imagesFolder = new File(folder, MyExporter.IMAGES_FOLDER);
     	
     	if (!modelFolder.isDirectory()) {
     		return;
@@ -85,7 +85,7 @@ public class MyImporter implements IModelImporter {
         // Load the Model from files (it will contain unresolved proxies)
     	IArchimateModel model = (IArchimateModel) loadModel(modelFolder);
     	// Remove model from its resource (needed to save it back to a .archimate file)
-    	resourceSet.getResource(URI.createFileURI((new File(modelFolder, "folder.xml")).getAbsolutePath()), true).getContents().remove(model); //$NON-NLS-1$
+    	resourceSet.getResource(URI.createFileURI((new File(modelFolder, MyExporter.FOLDER_XML)).getAbsolutePath()), true).getContents().remove(model);
     	
     	// Resolve proxies
     	resolveErrors = null;
@@ -189,7 +189,7 @@ public class MyImporter implements IModelImporter {
 	}
     
 	private IArchimateModel loadModel(File folder) {
-		IArchimateModel model = (IArchimateModel) loadElement(new File(folder, "folder.xml")); //$NON-NLS-1$
+		IArchimateModel model = (IArchimateModel) loadElement(new File(folder, MyExporter.FOLDER_XML));
 		IFolder tmpFolder;
 		
 		if (model != null) {
@@ -206,7 +206,7 @@ public class MyImporter implements IModelImporter {
 			
 			// Loop based on FolderType enumeration
 			for (int i = 0; i < folderList.size(); i++) {
-				if ((tmpFolder = loadFolder(new File(folder, folderList.get(i).toString()))) != null)  //$NON-NLS-1$
+				if ((tmpFolder = loadFolder(new File(folder, folderList.get(i).toString()))) != null)
 					model.getFolders().add(tmpFolder);
 			}
 		}
@@ -221,16 +221,16 @@ public class MyImporter implements IModelImporter {
 	 * @return
 	 */
     private IFolder loadFolder(File folder) {
-    	if (!folder.isDirectory() | !(new File(folder, "folder.xml")).isFile()) { //$NON-NLS-1$
+    	if (!folder.isDirectory() | !(new File(folder, MyExporter.FOLDER_XML)).isFile()) {
     		return null;
     	}
     	
     	// Load folder object itself
-    	IFolder currentFolder = (IFolder) loadElement(new File(folder, "folder.xml")); //$NON-NLS-1$
+    	IFolder currentFolder = (IFolder) loadElement(new File(folder, MyExporter.FOLDER_XML));
     	
     	// Load each elements (except folder.xml) and add them to folder
     	for (File fileOrFolder: folder.listFiles()) {
-    		if(!fileOrFolder.getName().equals("folder.xml")) { //$NON-NLS-1$
+    		if(!fileOrFolder.getName().equals(MyExporter.FOLDER_XML)) {
 				if (fileOrFolder.isFile()) {
 					currentFolder.getElements().add(loadElement(fileOrFolder));
 				} else {
