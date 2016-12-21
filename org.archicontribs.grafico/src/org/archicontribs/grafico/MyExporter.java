@@ -36,6 +36,7 @@ import com.archimatetool.model.IDiagramModelImageProvider;
 import com.archimatetool.model.IFolder;
 import com.archimatetool.model.IIdentifier;
 import com.archimatetool.model.IFolderContainer;
+import com.archimatetool.editor.preferences.Preferences;
 
 
 /**
@@ -59,7 +60,10 @@ public class MyExporter implements IModelExporter {
 	// /!\ IMAGES_FOLDER must match the prefix used in ArchiveManager.createArchiveImagePathname
 	static final String IMAGES_FOLDER = "images";
 	static final String MODEL_FOLDER = "model";
-    
+	
+	// Preference to use to keep track of last folder used
+	static final String PREF_LAST_FOLDER = "graficoLastFolder";
+	
     public MyExporter() {
     }
 
@@ -203,6 +207,8 @@ public class MyExporter implements IModelExporter {
      */
     private File askSaveFolder() throws IOException {
         DirectoryDialog dialog = new DirectoryDialog(Display.getCurrent().getActiveShell());
+        // Set default path from preference
+        dialog.setFilterPath(Preferences.STORE.getString(PREF_LAST_FOLDER));
         dialog.setText(Messages.MyExporter_0);
         dialog.setMessage(Messages.MyExporter_3);
         String path = dialog.open();
@@ -210,6 +216,9 @@ public class MyExporter implements IModelExporter {
         if(path == null) {
             return null;
         }
+
+        // Save choosen path in preference
+        Preferences.STORE.setValue(PREF_LAST_FOLDER, path);
         
         File folder = new File(path);
         

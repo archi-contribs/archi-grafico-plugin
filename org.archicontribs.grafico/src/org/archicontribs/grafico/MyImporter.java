@@ -30,6 +30,7 @@ import org.eclipse.swt.widgets.Display;
 import com.archimatetool.editor.model.IArchiveManager;
 import com.archimatetool.editor.model.IEditorModelManager;
 import com.archimatetool.editor.model.IModelImporter;
+import com.archimatetool.editor.preferences.Preferences;
 import com.archimatetool.model.FolderType;
 import com.archimatetool.model.IArchimateConcept;
 import com.archimatetool.model.IArchimateElement;
@@ -265,9 +266,19 @@ public class MyImporter implements IModelImporter {
      */
     private File askOpenFolder() {
         DirectoryDialog dialog = new DirectoryDialog(Display.getCurrent().getActiveShell());
+        // Set default path from preference
+        dialog.setFilterPath(Preferences.STORE.getString(MyExporter.PREF_LAST_FOLDER));
         dialog.setText(Messages.MyExporter_0);
         dialog.setMessage(Messages.MyImporter_0);
         String path = dialog.open();
-        return (path == null)? null : new File(path);
+        
+        if(path == null) {
+            return null;
+        }
+        
+        // Save choosen path in preference
+        Preferences.STORE.setValue(MyExporter.PREF_LAST_FOLDER, path);
+        
+        return new File(path);
     }
 }
