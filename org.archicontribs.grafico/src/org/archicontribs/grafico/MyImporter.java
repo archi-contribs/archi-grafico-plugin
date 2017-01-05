@@ -124,7 +124,8 @@ public class MyImporter implements IModelImporter {
     	for (File imageFile: folder.listFiles()) {
     		if (imageFile.isFile()) {
     		      bytes = Files.readAllBytes(imageFile.toPath());
-    		      archiveManager.addByteContentEntry(folder.getName()+File.separator+imageFile.getName(), bytes);
+    		      // /!\ This must match the prefix used in ArchiveManager.createArchiveImagePathname
+    		      archiveManager.addByteContentEntry("images/" + imageFile.getName(), bytes);
     		}
     	}
     }

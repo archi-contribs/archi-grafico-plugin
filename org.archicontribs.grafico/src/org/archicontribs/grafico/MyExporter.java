@@ -57,7 +57,6 @@ public class MyExporter implements IModelExporter {
 	static final String FOLDER_XML = "folder.xml";
 	
 	// Name of folders for model and images
-	// /!\ IMAGES_FOLDER must match the prefix used in ArchiveManager.createArchiveImagePathname
 	static final String IMAGES_FOLDER = "images";
 	static final String MODEL_FOLDER = "model";
 	
