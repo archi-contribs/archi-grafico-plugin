@@ -172,7 +172,7 @@ public class MyImporter implements IModelImporter {
      * @return
      */
 	private EObject resolve(IIdentifier object, IIdentifier parent) {
-		if (object != null & object.eIsProxy()) {
+		if (object != null && object.eIsProxy()) {
 			IIdentifier newObject = idLookup.get(((InternalEObject) object).eProxyURI().fragment());
 			// Log errors if proxy has not been resolved
 			if (newObject == null) {
@@ -223,7 +223,7 @@ public class MyImporter implements IModelImporter {
 	 * @return
 	 */
     private IFolder loadFolder(File folder) {
-    	if (!folder.isDirectory() | !(new File(folder, MyExporter.FOLDER_XML)).isFile()) {
+    	if (!folder.isDirectory() || !(new File(folder, MyExporter.FOLDER_XML)).isFile()) {
     		return null;
     	}
     	
