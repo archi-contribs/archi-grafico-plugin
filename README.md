@@ -1,6 +1,8 @@
 archi-grafico-plugin
 ====================
 
+## Note that Grafico is now superseeded by the new [Collaboration plugin](https://www.archimatetool.com/plugins)
+
 ### **G**it f**r**iendly **A**rchi **Fi**le **Co**llection
 GRAFICO is a way to persist an ArchiMate model in a bunch of XML files (one file per ArchiMate element or view). The resulting files can then be easily tracked and merge using almost any Version Control System (VCS) or Source Code Management (SCM) solutions like [git](http://git-scm.com). Said differently, this is the basis of a really powerfull model repository for Archi.
 
